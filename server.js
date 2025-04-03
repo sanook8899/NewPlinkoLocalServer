@@ -13,7 +13,7 @@ var awardBase = 0;
 var gameType = 2;
 var roomId = 0;
 var records = [];
-var multiplierValue = [49, 14, 5.3, 2.1, 0.5, 0.2, 0.0, 0.2, 0.5, 2.1, 5.3, 14, 49];
+var multiplierValue = [[64, 16, 6, 3, 1.5, 1, 0.5, 1, 1.5, 3, 6, 16, 64], [228, 32, 8, 2, 0.5, 0.2, 0, 0.2, 0.5, 2, 8, 32, 228]];
 /*var probabilities = [0.00129327, 0.00129327, 0.02884998, 0.06565858, 0.14723438,
     0.15718265, 0.19697573, 0.15718265, 0.14723438, 0.06565858,
     0.02884998, 0.00129327, 0.00129327]; //95.46%
@@ -110,10 +110,10 @@ function joinRoomRequest() {
         maxBet: 1024,
     }
 
-    currencyInfo = {
+    currencyInfo = [{
         currencyId: 1,
         currency: "CNY",
-    }
+    }]
 
     response.vals = {
         type: 100000,
@@ -249,7 +249,7 @@ function roomListRequest() {
     return response;
 }
 
-function setBetRequest(bet) {
+function setBetRequest(bet, level) {
     awardBase = bet;
     gameCode = "#" + generateRandomString(10);
     balance -= awardBase;
@@ -262,8 +262,12 @@ function setBetRequest(bet) {
 
     var randomNumber = Math.random();
     var selectedMultiplierIndex = cumulativeProbabilities.findIndex(cumProb => randomNumber < cumProb);
+    console.log("selectedMultiplierIndex", selectedMultiplierIndex);
 
-    let winAmount = multiplierValue[selectedMultiplierIndex - 1] * bet;
+    var selectedMultiplier = multiplierValue[level - 1];
+    console.log("selectedMultiplier", selectedMultiplier);
+
+    let winAmount = selectedMultiplier[selectedMultiplierIndex - 1] * bet;
 
     let response = {
         errCode: 0,
@@ -354,15 +358,18 @@ server.on("connection", (ws) => {
                 // set bet request
                 if (jsonContent.data[0].subData[0].opCode == "SetBet") {
                     let bet = jsonContent.data[0].subData[0].message.bet;
+                    let level = jsonContent.data[0].subData[0].message.level;
+                    let response = setBetRequest(bet, level);
+                    ws.send(JSON.stringify(response));
                     //original
                     //let response = setBetRequest(bet);
                     //ws.send(JSON.stringify(response));
                     // new
                     let size = jsonContent.data[0].subData[0].message.size;
-                    for (let i = 0; i < size; i++) {
-                        let response = setBetRequest(bet);
-                        ws.send(JSON.stringify(response));
-                    }
+                    //for (let i = 0; i < size; i++) {
+                    //    let response = setBetRequest(bet);
+                    //    ws.send(JSON.stringify(response));
+                    //}
                 }
             }
         }
